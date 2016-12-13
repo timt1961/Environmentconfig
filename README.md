@@ -1,2 +1,2 @@
 # Environmentconfig
-Convenience settings for my environmen
+Convenience settings for my environment

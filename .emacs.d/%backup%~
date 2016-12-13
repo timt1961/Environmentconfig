@@ -1,0 +1,625 @@
+#!/bin/bash
+#
+# File          : create_otas_tb
+# Author        : Tim Timmerman
+# Purpose       : Create testbench virtual machines (OTAS6.0 Only!)
+# Note          : This code currently expects a VMware vCLI 5.1 version and
+#                 VMware OVFtool 1.6 version installed
+#
+# History:
+# 12-Mar-2015 TimT. Creation : copied create_anyrel_tb and strip &
+#                   refactor the code. 
+#######################################################################
+#               Copyright (c) 2015 ASM Lithography B.V.               #
+#                     Veldhoven - The Netherlands                     #
+#######################################################################
+echo "DEBUG VERSION"
+#
+
+progname=${0##*/}
+BASEDIR=${0%/*}
+BASEDIR=${BASEDIR%/*}
+version="16-Mar-2015"
+histdir=/local/kickstart
+
+# Check that we are not root ... so if root user stop here
+check_not_root() {
+    if [ `id -u` = 0 ]; then
+        echo "Executed as root user"
+        exit 0
+    fi
+}
+
+
+
+# Set cluster specific information.
+
+set_cluster() {
+    cluster=$1
+    case $cluster in
+        1)
+            CLUSTER="LCP-CLS1"
+            DATASTORE=/vmfs/volumes/esx-storage
+            STORAGE="esx-storage"
+            DC_STRING="[datacenter-21/esx-storage]"
+            ;;
+        2)
+            CLUSTER="LCP-CLS2"
+            DATASTORE=/vmfs/volumes/esx2-storage
+            STORAGE="esx2-storage"
+            DC_STRING="[datacenter-21/esx2-storage]"
+            ;;
+        3)
+            CLUSTER="LCP-CLS3"
+            DATASTORE=/vmfs/volumes/esx3-storage
+            STORAGE="esx3-storage"
+            DC_STRING="[datacenter-21/esx3-storage]"
+            ;;
+        *)
+            echo "Unknown cluster $cluster"
+            exit 4
+            ;;
+    esac
+
+    set_esx_host $cluster
+
+}
+
+print_usage() {
+    echo "
+$progname -c <tbname>  -E <externalip> -s <stream>
+          -t <tag> -C <cluster> [-I <internalip>]
+
+Create and kickstart an OTAS (6.0) virtual machine. 
+         
+Options:
+   -c <tbname> : create the testbench with this name (eg otas-tb04)
+   -E <externalip> : Assign this external IP to the testbench
+                     (For OTAS, mandatory)
+   -s <stream>     : Install this stream
+   -t <tag>        : Install this tag (e.g. daily, weekly, baseline-id)
+   -C <cluster>    : Deploy the VM on this cluster (1,2,3)
+   -I <internalip> : Optional: internal IP to assign 
+                     (If not set, use 10.40.$TBNUM.204)
+"
+
+}
+print_version() {
+    echo "$progname $version"
+}
+
+set_vars() {
+    # Variables
+    VC_AUTH_SHORT="-u sysadmin -p AsmlLitho!"
+    VC_AUTH_LONG="--username sysadmin --password AsmlLitho!"
+    VC_NAME_INT=vcenter-prd
+    VCENTER_URL="https://${VC_NAME_INT}:443/sdk"
+    VCENTER_WEB_SVC="${VCENTER_URL}/webService"
+# (Kept, in case I ever need the IP)
+#    VC_IP_EXT=172.19.236.104
+    ESX_AUTH_LONG="--username root --password ferryman"
+    MYMAC="00-00-00-00-00-00"
+
+
+	
+    # PATH variables
+    PATH=${PATH}:"/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin"
+    BINPATH=/usr/lib/vmware-vcli/apps
+    DOCROOT=/var/www/html
+    PXEPATH=/tftpboot/pxelinux.cfg
+
+
+    # Source paths
+    #VIRTPATH=pkg/hwconfig/VirtualizationMgmt/vms
+    
+    STREAMPATH=${EXPORT_DIR}/hwconfig
+    INSTPATH=${DOCROOT}${STREAMPATH}/VirtualizationMgmt/vms
+
+    # Config files
+    BOOTLINK_STORE=${histdir}/bootlink
+    CONFIG_STORE=${histdir}/config
+
+    #
+    # Used to build temporary filenames
+    wVM=${VM}.$$
+    
+}
+
+cleanup() {
+    RETVAL=0
+
+    for i in $(ls /tmp/${wVM}* 2>/dev/null)
+    do
+#        rm -f $i
+        RETVAL=$(( $RETVAL + $? ))
+    done
+    if [[ -L ${PXEPATH}/${MYMAC} ]]
+    then
+        rm -f ${PXEPATH}/${MYMAC}
+        RETVAL=$(( $RETVAL + $? ))
+    fi
+
+    if [[ -f ${PXEPATH}/${TB} ]]
+    then
+        mv -f ${PXEPATH}/${TB} ${BOOTLINK_STORE}
+        lRETVAL=$?
+        RETVAL=$(( $RETVAL + $lRETVAL ))
+        if [[ $lRETVAL -eq 0 ]]
+        then
+            chmod 666 ${BOOTLINK_STORE}/${TB}
+            RETVAL=$(( $RETVAL + $? ))
+        fi
+    fi
+
+    if [[ -f ${DOCROOT}/${TB}.cfg ]]
+    then
+        mv -f ${DOCROOT}/${TB}.cfg ${CONFIG_STORE}
+        lRETVAL=$?
+        RETVAL=$(( $RETVAL + $lRETVAL ))
+        if [[ $lRETVAL -eq 0 ]]
+        then
+            chmod 666 ${CONFIG_STORE}/${TB}.cfg
+            RETVAL=$(( $RETVAL + $? ))
+        fi
+    fi
+
+    return $RETVAL
+}
+
+control_c() {
+    echo -en "\n*** Exiting on keyboard interrupt ***\n"
+    cleanup
+    exit $?
+}
+
+
+
+set_esx_host() {
+# Check which ESX host is available
+# Broken as designed.
+# We should be iterating over a list of hosts in the cluster, but we'll 
+# happily check for host esx110 or esx310 until the heatdeath of the universe. 
+# Fortunately, the first ESX host is always up. 
+    echo "Check which ESX host is available"
+
+    case $1 in
+        1) # Cluster 1; esx01..esx16
+            i="2"
+            ESXHOST=esx0$i
+            while [ `ping -c 2 -W 2 $ESXHOST > /dev/null; echo $?` -eq 1 ]
+            do
+                i=$[$i+1]
+                ESXHOST=esx0$i
+            done
+            ;;
+        2) # Cluster 2: esx17..esx19 (17..32)
+            i="8"
+            ESXHOST=esx1$i
+            while [ `ping -c 2 -W 2 $ESXHOST > /dev/null; echo $?` -eq 1 ]
+            do
+                i=$[$i+1]
+                ESXHOST=esx1$i
+            done
+            ;;
+        3) # Cluster 3: esx33..esx48
+            i="4"
+            ESXHOST=esx3$i
+            while [ `ping -c 2 -W 2 $ESXHOST > /dev/null; echo $?` -eq 1 ]
+            do
+                i=$[$i+1]
+                ESXHOST=esx3$i
+            done
+            ;;
+
+    esac
+
+}
+#
+# Check if there is an old vm, stop and remove it. 
+#
+
+remove_old_vm() {
+
+# Check if vm is registered.    
+    echo "Checking to see if ${TB} is registered"
+    REGISTER=$(vmrun -h ${VCENTER_URL} -t vc ${VC_AUTH_SHORT} listRegisteredVM \
+        | grep -w "${TB}/${TB}.vmx")
+
+    if [ -n "$REGISTER" ]
+    then
+        # If the vm is registered, it could be running: stop it. 
+        echo "Checking if ${TB} is running"
+        VM_RUN=$(vmrun -h ${VCENTER_URL} -t vc ${VC_AUTH_SHORT} list \
+            | grep -w "${TB}/${TB}.vmx")
+
+
+        if [ -n "$VM_RUN" ]
+        then
+            echo "Stopping ${TB}"
+            # Brutaly murder the VM here since it is going to be deleted anyway:
+            vmrun -h ${VCENTER_URL} -t vc ${VC_AUTH_SHORT} stop "${VM_RUN}" hard
+            sleep 15
+            echo "Removing ${TB}"
+            echo "Command line : vmrun -h ${VCENTER_URL} -t vc ${VC_AUTH_SHORT} deletevm ${VM_RUN}"
+            vmrun -h ${VCENTER_URL} -t vc ${VC_AUTH_SHORT} deletevm "${VM_RUN}"
+        else
+            # it was registered, but not running; remove outright
+            echo "Removing ${TB}"
+            echo "Commandline (register) : vmrun -h ${VCENTER_URL} -t vc ${VC_AUTH_SHORT} deletevm ${REGISTER}"
+
+            vmrun -h ${VCENTER_URL} -t vc ${VC_AUTH_SHORT} deletevm "${REGISTER}"
+# Give it time to remove the storage
+            sleep 15
+        fi
+
+#
+# Get associated storage
+        echo "Checking for storage"
+        STORE=$(echo $REGISTER | awk '{ print $1 }' | awk -F"/" '{print"[" $2}')
+
+#
+# Remove the associated storage
+        echo "Removing storage"
+        
+
+        echo "first vifs <$STORE>"
+        /usr/bin/vifs --server $ESXHOST $ESX_AUTH_LONG \
+            --dir "$STORE" | grep ^${TB}/$ > /dev/null
+             
+        if [ $? = 0 ]
+        then
+            echo "Found STORE : $STORE in $REGISTER"
+            /usr/bin/vifs --server $ESXHOST $ESX_AUTH_LONG \
+                --rm "$STORE ${TB}" --force  
+        fi
+        echo "Checking storage removed"
+#
+# Double check that VM has been removed
+        /usr/bin/vifs --server $ESXHOST $ESX_AUTH_LONG \
+            --dir "$STORE" | grep ^${TB}/$ > /dev/null
+        if [ $? = 0 ]
+        then
+            echo "ERROR: ${TB} not properly removed from $ESXHOST, $STORE"
+            exit 4
+        fi
+
+    fi 
+
+    echo "Remove old vm End"
+}
+
+
+create() {
+    # Creating VM as defined in XML file
+    # TODO: Why don't we use the ESXHOST here ?
+    echo "Creating ${TB}"
+    case $1 in
+        1)
+            cat ${INSTPATH}/${VM}/config/${VM}.xml > /tmp/${wVM}.xml		
+            ;;
+        2)
+            cat ${INSTPATH}/${VM}/config/${VM}.xml | sed s/esx01/esx17/ | sed s/esx-storage/esx2-storage/ > /tmp/${wVM}.xml
+            ;;
+        3)
+            cat ${INSTPATH}/${VM}/config/${VM}.xml | sed s/esx01/esx33/ | sed s/esx-storage/esx3-storage/ > /tmp/${wVM}.xml
+            ;;
+    esac
+
+	    
+    sed -i -e "/<Name>/s/-release//" /tmp/${wVM}.xml
+    sed -i -e "/<Name>/s/${VM}/${TB}/" /tmp/${wVM}.xml
+    ${BINPATH}/vm/vmcreate_tb.pl --url ${VCENTER_WEB_SVC} ${VC_AUTH_LONG}\
+    --filename /tmp/${wVM}.xml --schema ${INSTPATH}/schema/vm_creation.xsd
+
+
+    #
+    # TODO: what is the difference between ESXHOST and EHOST ?
+    # If additional XML files exist reconfigure VM
+    for NR in 1 2 3 4 5
+    do
+        if [ -f ${INSTPATH}/${VM}/config/${VM}_add${NR}.xml ]; then    
+            cp ${INSTPATH}/${VM}/config/${VM}_add${NR}.xml /tmp/${wVM}_add${NR}.xml
+            EHOST=`/usr/lib/vmware-vcli/apps/vm/guestinfo.pl --operation display --vmname ${TB}\
+            --url ${VCENTER_WEB_SVC} ${VC_AUTH_LONG} | awk '{print $8}'`
+
+            sed -i -e "/Host/s/esx01/${EHOST}/g" /tmp/${wVM}_add${NR}.xml
+            sed -i -e "/<Name>/s/-release//" /tmp/${wVM}_add${NR}.xml
+            sed -i -e "/<Name>/s/${VM}/${TB}/" /tmp/${wVM}_add${NR}.xml
+            #
+            # TODO: the following is a special tweak to reduce the size of the
+            # data disk on OTAS. this needs to go!
+            if [ ${NR} -eq 2 ]
+            then
+                echo "Reducing OTAS data disk size"
+                sed -i -e "/<Size>/s/1024000/102400/" /tmp/${wVM}_add${NR}.xml
+            fi
+            ${BINPATH}/vm/vmreconfig_tb.pl --url ${VCENTER_WEB_SVC} ${VC_AUTH_LONG}\
+            --filename /tmp/${wVM}_add${NR}.xml --schema ${INSTPATH}/schema/vm_reconfig.xsd
+        fi
+    done
+}
+
+advvm() {
+    addVMAdvParamOption.pl --server ${VC_NAME_INT} ${VC_AUTH_LONG}\
+    --vmname ${TB} --key mem.hotadd --value true > /dev/null
+    addVMAdvParamOption.pl --server ${VC_NAME_INT} ${VC_AUTH_LONG}\
+    --vmname ${TB} --key vcpu.hotadd --value true > /dev/null
+}
+
+
+
+#
+# Extract the MAC address for the internal network interface (eth1)
+
+set_mymac() {
+
+   MYMAC=$(/home/sawfasti/lib/findvmmac.pl \
+       --url ${VCENTER_WEB_SVC} \
+       ${VC_AUTH_LONG} --vmname ${TB} | tr ':' '-')
+
+    if [[ -z "$MYMAC" ]] 
+    then
+        # This is WRONG: the VM ought to have at least one network interface.
+        # Bail out since it makes no sense to continue.
+        echo "ERROR: Failed to obtain MAC address."
+        cleanup
+        exit 9
+    fi
+    if [ $(echo $MYMAC | wc -w) -ne 1 ]
+    then
+        # Multiple MAC addresses (as expected)
+        # Use the second address returned.
+        MYMAC=$(echo $MYMAC | cut -d' ' -f 2,2)
+    fi
+    # Test to see if MYMAC contains a valid mac address.
+    # A mac address is considered valid if it starts with
+    # 00:50:56 (which by now reads 00-50-56 due to translation)
+        # and if it contains no more than six fields.
+    if [ -n "${MYMAC%00-50-56*}" ]
+    then
+        # The mac address is invalid since it does not start
+        # with 00:50:56 (and thus the ${MYMAC%00-50-56*} expression
+        # is not empty).
+        echo "${MYMAC} is not recognized as a valid MAC address."
+        cleanup
+        exit 10
+    elif [ $(echo "${MYMAC}" | tr '-' ' ' | wc -w) -ne 6 ] 
+    then
+        # The mac address does not contain exactly six fields
+        echo "${MYMAC} is not recognized as a valid MAC address"
+        cleanup
+        exit 11
+    fi
+    
+
+    # Prefix the MAC address with "01" to satisfy PXE boot
+    MYMAC="01-${MYMAC}"
+
+}
+configure_pxeboot() {
+    # Preparing configuration files for creation
+    # First off, create an appropriate tftp boot descriptor
+
+    
+   # Write the boot configuration
+    echo "Setting up PXEboot: PATH $PXEPATH/${TB}"
+    CURDIR=$(pwd)
+    cd ${PXEPATH}
+
+    cat <<EOF > ${TB}
+default vmlinuz
+append initrd=initrd.img ks=http://10.40.0.102/${TB}.cfg ksdevice=eth1 ramdrive_size=8192
+ippend 1
+EOF
+#
+# Determine the mac address and set up the correct links
+    set_mymac 
+
+    if [[ -L $MYMAC ]]
+    then
+        rm -f $MYMAC
+    fi
+    ln -s ${TB} $MYMAC
+    cd ${CURDIR}
+}
+
+
+configure_kickstart_file() {
+    #  patch the kickstart file:
+    echo "Using ${INSTPATH}/${VM}/kickstart/${VM}.cfg"
+
+    ${EXPORT_DIR}/install/process_kickstart_file --tbnum ${TBNUM} \
+       --extip ${EXT_IP} \
+       --exppkgroot ${EXPORT_DIR} \
+       --hostname ${TB} \
+       --kickstartin ${INSTPATH}/${VM}/kickstart/${VM}.cfg\
+       --kickstartout ${DOCROOT}/${TB}.cfg
+       
+      
+    #
+    # Append code to kickstart file to set the sawfasti key
+    echo 'mkdir -p /root/.ssh' >> ${DOCROOT}/${TB}.cfg
+    echo 'chmod 700 /root/.ssh' >> ${DOCROOT}/${TB}.cfg
+    KEY=$(cat $KEYFILE) 2>/dev/null
+    echo "echo '${KEY}' >> /root/.ssh/authorized_keys"  >> ${DOCROOT}/${TB}.cfg
+}
+
+prepare_vm_boot() {
+    echo " "
+    configure_pxeboot
+    configure_kickstart_file
+}
+
+start_vm() {
+
+    echo "Starting ${TB} for installation"
+    vmrun -h ${VCENTER_URL} -t vc ${VC_AUTH_SHORT} start "${DC_STRING} ${TB}/${TB}.vmx"
+
+    echo " "
+    # Mandatory nap to allow retrieval of the kickstart file
+    # (this script removes the kickstart file when it is done)
+    echo "Sleeping for 150 seconds to allow $TB to start"
+    sleep 150
+   
+    echo "Monitor ${TB} console in vCenter"
+}
+#
+# Parse the command line options
+#
+# Options:
+#  -c <tbname> : testbench to create (eg otas-tb22)
+#  -I <internalip> : internal IP address (default 10.40.<tbnum>.204
+#  -E <externalip> : External IP address of the testbench
+#  -s <stream>     : stream to use for install
+#  -t <tag>        : buildtag (daily,weekly) to use for install
+#  -C <cluster>    : cluster to install on. 
+#  -K <keyfile>    : Keyfile to install for user root
+#
+get_options() {
+    TB=""
+    INT_IP=""
+    EXT_IP=""
+    VM=""
+    CLS_NR=1
+    while getopts c:I:E:s:t:C:X:K:vh OPTCHAR 
+    do
+        case $OPTCHAR in
+            c) # Testbench to create
+                TB=${OPTARG}
+                VM=${TB%-*} # extract VM name
+                # TODO: the renaming is due to a legacy issue in the 
+                #       source tree, related to otas-prd and otas-tst
+                #       There should be one config set for 'otas' only
+                #       but that's more work than I can handle now. 
+                #       Change the vm to otas-prd 
+                if [ "${VM}" = "otas" ]
+                then
+                    VM="otas-prd"
+                fi
+                TBNUM=$(echo $TB | awk '{split($0, a, "tb"); print a[2]}')
+                ;;
+            I) # Internal IP
+                INT_IP=${OPTARG}
+                ;;
+            E) # External IP
+                EXT_IP=${OPTARG}
+                ;;
+            s) # Stream
+                STREAM=${OPTARG}
+                ;;
+            t) # Build tag (daily, weekly)
+                TAG=${OPTARG}
+                ;;
+            C) # cluster
+                CLS_NR=${OPTARG}
+                ;;
+            v) 
+                print_version
+                exit 0
+                ;;
+            h)  
+                print_usage
+                exit 0
+                ;;
+            X) 
+                EXPORT_DIR=${OPTARG}
+                ;;
+            K)
+                KEYFILE=${OPTARG}
+                ;;
+            *)
+                echo "Unexpected argument ${OPTCHAR}"
+                exit 1
+                ;;
+        esac
+
+    done
+    
+    #
+    # verify correct settings
+    if [ -z "${TB}" ]
+    then
+        echo "ERROR: Missing testbench name"
+        print_usage
+        exit 1
+    fi
+    if [ -z "${EXT_IP}" ]
+    then
+        echo "ERROR: external IP addres not specified"
+        print_usage
+        exit 1
+    fi
+    if [ -z "${EXPORT_DIR}" ]
+    then
+
+        if [ -z "${STREAM}" ]
+        then
+            echo "ERROR: No installation stream selected"
+            print_usage
+            exit 1
+        fi
+    
+        if [ -z "${TAG}" ]
+        then
+            echo "ERROR: No build tag selected"
+            print_usage
+            exit 1
+        fi
+        EXPORT_DIR=/exp/${STREAM}/${TAG}
+    fi
+    echo "EXPORT_DIR = $EXPORT_DIR"
+    
+    if [ ! -d ${EXPORT_DIR}/OTAS_1.0.0 ] 
+    then
+        echo "ERROR: Repository ${EXPORT_DIR}/OTAS_1.0.0 does not exist"
+        exit 2
+    fi
+    if [ -z "${INT_IP}" ]
+    then
+        INT_IP="10.40.${TBNUM}.204"
+        echo "Missing internal IP address, using $INT_IP"
+    fi
+    if [ -z "${KEYFILE}" ]
+    then
+        KEYFILE="/home/sawfasti/id_rsa_ferryman.pub"
+    fi
+
+}
+
+
+
+#####################################
+#####   Main                    #####
+#####################################
+check_not_root
+
+get_options $@
+
+
+set_vars
+set_cluster ${CLS_NR}
+
+
+echo "Testing ${INSTPATH}/${VM}/config/${VM}.xml"
+if [[ -f  ${INSTPATH}/${VM}/config/${VM}.xml ]]; 
+then
+    echo "Deploying $VM from $OTAS_SOURCE_DIR"
+
+    remove_old_vm
+
+    # trap keyboard interrupt (control-c)
+    # 
+    trap control_c SIGINT
+    #
+    # From this point on, we need to cleanup, even when interrupted
+    create ${CLS_NR}
+    advvm
+    prepare_vm_boot
+    start_vm
+
+    cleanup
+    exit $?
+else
+    echo "Could not find machine spec for $VM "
+    exit 1
+fi

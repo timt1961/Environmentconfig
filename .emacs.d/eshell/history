@@ -1,0 +1,3 @@
+ctmake export
+ls logging/errlog/*.err
+more logging/errlog/*.err

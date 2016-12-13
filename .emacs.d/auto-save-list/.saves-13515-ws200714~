@@ -1,0 +1,12 @@
+/vobs/lcp/Patch/generation/continue_patch_generation
+/vobs/lcp/Patch/generation/#continue_patch_generation#
+/vobs/lcp/ZX/Patch/generation/continue_patch_generation
+/vobs/lcp/ZX/Patch/generation/#continue_patch_generation#
+/vobs/lcp/Patch/generation/Archive.py
+/vobs/lcp/Patch/generation/#Archive.py#
+/vobs/lcp/Patch/generation/VmPatch.py
+/vobs/lcp/Patch/generation/#VmPatch.py#
+/vobs/lcp/Patch/installation/AsmlPatch/ASMUtils.py
+/vobs/lcp/Patch/installation/AsmlPatch/#ASMUtils.py#
+/vobs/lcp/Patch/installation/AsmlPatch/VM.py
+/vobs/lcp/Patch/installation/AsmlPatch/#VM.py#

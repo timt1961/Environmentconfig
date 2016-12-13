@@ -1,0 +1,10 @@
+/vobs/lis/VirtualizationMgmt/vms/lis-appl/kickstart/lis-appl.cfg
+/vobs/lis/VirtualizationMgmt/vms/lis-appl/kickstart/#lis-appl.cfg#
+/vobs/lis/ZX/Installation/asm_install
+/vobs/lis/ZX/Installation/#asm_install#
+/vobs/lis/ZX/Installation/updateHostConfig.sh
+/vobs/lis/ZX/Installation/#updateHostConfig.sh#
+/vobs/lis/ZX/Installation/configSwappiness
+/vobs/lis/ZX/Installation/#configSwappiness#
+/vobs/lis/ZX/Configuration/10-lis.conf
+/vobs/lis/ZX/Configuration/#10-lis.conf#

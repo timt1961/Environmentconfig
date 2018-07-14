@@ -1,22 +1,136 @@
-# @(#).bashrc 1.3 88/02/08 SMI
-###############################################################
+# ~/.bashrc: executed by bash(1) for non-login shells.
+# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
+# for examples
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+# don't put duplicate lines or lines starting with space in the history.
+# See bash(1) for more options
+HISTCONTROL=ignoreboth
+
+# append to the history file, don't overwrite it
+shopt -s histappend
+
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+HISTSIZE=1000
+HISTFILESIZE=2000
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
+
+# If set, the pattern "**" used in a pathname expansion context will
+# match all files and zero or more directories and subdirectories.
+#shopt -s globstar
+
+# make less more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+# set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
+    debian_chroot=$(cat /etc/debian_chroot)
+fi
+
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm-color|*-256color) color_prompt=yes;;
+esac
+
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+#force_color_prompt=yes
+
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+	# We have color support; assume it's compliant with Ecma-48
+	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+	# a case would tend to support setf rather than setaf.)
+	color_prompt=yes
+    else
+	color_prompt=
+    fi
+fi
+
+if [ "$color_prompt" = yes ]; then
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+else
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+fi
+unset color_prompt force_color_prompt
+
+# If this is an xterm set the title to user@host:dir
+case "$TERM" in
+xterm*|rxvt*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+*)
+    ;;
+esac
+
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    #alias dir='dir --color=auto'
+    #alias vdir='vdir --color=auto'
+
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+# colored GCC warnings and errors
+#export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+
+# some more ls aliases
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
+# Add an "alert" alias for long running commands.  Use like so:
+#   sleep 10; alert
+alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+
+# Alias definitions.
+# You may want to put all your additions into a separate file like
+# ~/.bash_aliases, instead of adding them here directly.
+# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
+fi
+
 #
-#	.bashrc file
+# Local customizations
+if [ -f ~/bin/git_completion.sh ]; then
+   if [ `uname` == 'Linux' ]
+   then
+     source ~/bin/git_completion.sh
+   fi
+fi
 #
-#	initial setup file for both interactive and noninteractive
-#       C-Shells
-#
-#       cloned from .cshrc
-# Reworked on 05/09/1995
-#############################################################
-export DOTBASHRCSTART=`date +%s`
-#echo "This is .bashrc"
-#echo "BASHRC Start : Path $PATH"
-#echo "OS_ : $os_ (before))"
-SHELL=/bin/bash
-#source /sdev/defaults/gencsh   # general aliases.
-os_=`uname -s`
-on_=`uname -n`
+# See http://code-worrier.com/blog/git-branch-in-bash-prompt/ for details
+if [ `uname` == 'Linux' ]
+then
+  source ~/bin/git_prompt.sh
+  PS1="\t-\h:\w\$(__git_ps1) \$ "
+fi
 
 function setenv () {
   export $1="$2"
@@ -25,173 +139,17 @@ function setenv () {
 function unsetenv () {
   unset $1
 }
+function em () {
 
-#----------------------------------------------------------------------------#
-# ClearCase environmental logic.
-#----------------------------------------------------------------------------#
-#
-# The CLEARCASE_ROOT environment variable is set by ClearCase during the
-# "setview" operation. Thus, if this variable is set then it is safe to assume
-# that the current shell was either the result of a "cleartool setview"
-# command or a sub-shell in an active ClearCase view.
-#
-#
-if [[ -n "$CLEARCASE_ROOT" ]]
-then
-  # Assume we have to source the new environment
-  switchview_=1
-
-  # Do we have a view already set?
-  if [[ -n "$SCM_OLD_ROOT" ]]
-  then
-    # Yes we have a view, is it the same view?
-    if [[ ${SCM_OLD_ROOT} = ${CLEARCASE_ROOT} ]]
-    then
-      # Yes same view, skip the environment script
-      switchview_=0
-    fi
-  fi
-
-  # Should I source the environment script?
-  if [[ ${switchview_} = 1 ]]
-  then
-
-    # Get root directory
-    root_=$(/sdev/defaults/getclusterroot)
-
-    if [[ -n "${root_}" ]]
-    then
-        # found a root
-
-        envfile_=${root_}/scm/context/env.ksh
-
-        if [[ ! -r ${envfile_} ]]
-        then
-          # Legacy mode, do the same things as in the past
-          envfile_=/sdev/user/etc/ccset_env.ksh
-        fi
-        # Source the file
-        . ${envfile_}
-        unset envfile_
-
-    fi # ${root_}
-
-    export SCM_OLD_ROOT=$CLEARCASE_ROOT
-    unset root_
-
-  fi # ${switchview_} = 1
-  # Cleanup local variables
-  unset switchview_
-  export PS1="\h:$(if [[ -n "${SCM_WS}" ]]; then echo \[${CLEARCASE_ROOT##*/}\];fi) \$ "
-
-else # Possible git environment. Load up
-    #
-    # see http://code-worrier.com/blog/autocomplete-git/
-#    echo "bashrc Sourcing git autocomplete"
-    if [ -f ~/bin/git_completion.sh ]; then
-        if [ `uname` == 'Linux' ]
-        then
-            source ~/bin/git_completion.sh
-        fi
-    fi
-    #
-    # See http://code-worrier.com/blog/git-branch-in-bash-prompt/ for details
-    if [ `uname` == 'Linux' ]
-    then
-        source /home/utt/bin/git_prompt.sh
-        PS1="\t-\h:\w\$(__git_ps1) \$ "
-    fi
-#    echo "bashrc: not clearcase: set ps1"
-
-fi # "$CLEARCASE_ROOT"
-
-host=`uname -n`
-	
-
-#limit coredumpsize unlimited
-#PS1=$host"$ "
-# have the titlebar display the current workspace
-#export PS1='\h $ '
-#export PS1="\h:$(if [[ -n "${SCM_WS}" ]]; then echo \[${CLEARCASE_ROOT##*/}\];fi) \$ "
-#export PS1
-
-#if  [ "$SCM_WS" != "" ] ; then 
-#   prefix=`basename $SCM_WS`
-#   PS1="\h ("$CURRENTVIEW") $ "
-#fi
-
-#
-# Clever little function which starts emacs... Could be that this only works under
-# a window manager...
-function em {
-#    if [ -x /usr/bin/emacs ]; then
-#	LD_LIBRARY_PATH=/scratch/lib:$LD_LIBRARY_PATH
-#	/usr/bin/emacs -i -geometry 80x63+1 "$@"&
-#    else
-#	/home/utt/cadbin/emacs -i -geometry 80x63+1 "$@"&
-        /cws/utt/linux/bin/emacs -i -geometry 80x55+1 "$@"&
-#    fi
+        /usr/bin/emacs -i -geometry 80x55+1 "$@"&
 }
 
-# If this is an xterm set the title to user@host:dir
-case "$TERM" in
-xterm*|rxvt*)
-    PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME}: ${PWD/$HOME/~}\007"'
-    ;;
-*)
-    ;;
-esac
-
-
-#	skip remaining setup if not an interactive shell
-
-#if ($?USER == 0 || $?prompt == 0) exit
-
-
-#alias awk=nawk
-
-#alias crpr='xterm -title CRPR -e crpr&'
-
-
-PRP="`uname -n`:[${USER}]"	  ; export PRP
-#
-#
-export LC_TYPE=iso_8859_1
-#
-#
-# This stuff was lifted from the examples files... It will help to 
-# set the environmnent
-# setenv VAR VALUE
-#
-# Setup for pycharm
-if [ -d /cadappl/jdk ]
-then
-  export PYCHARM_JDK='/cadappl/jdk/1.7.0.15/jdk'
-  alias pycharm='/cws/utt/pycharm-community-3.4.1/bin/pycharm.sh'
-fi
-#
-# set up umask
-# umask 022  # rw-r-r ;temporarily deactivated: this may break codemanager
-#echo "Sourcing alias"
 if [ -f ~/.bash_aliases ]; then
    . ~/.bash_aliases
 fi
-#echo "Sourcing profile"
-source ~/.profile
-
 #
 # I have a very distinct preference for the editor
 #
 export EDIT=emacs
 export EDITOR=emacs
 export MY_EDITOR=emacs
-
-#echo ".bashrc done "
-export DOTBASRHCEND=`date +%s`
-
-#
-# Virtualenv wrapper settings
-#export WORKON_HOME=$HOME/.virtualenvs
-#export PROJECT_HOME=$HOME/Django-projects
-#source /usr/bin/virtualenvwrapper.sh
-

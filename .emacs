@@ -5,6 +5,13 @@
 ;; Really should put this in a local git and cleanup.. 
 
 ;; Speed up startup
+
+;; Added by Package.el.  This must come before configurations of
+;; installed packages.  Don't delete this line.  If you don't want it,
+;; just comment it out by adding a semicolon to the start of the line.
+;; You may delete these explanatory comments.
+(package-initialize)
+
 (modify-frame-parameters nil '((wait-for-wm . nil)))
 ;; Don't load the default library
 ;;
@@ -25,10 +32,6 @@
 (add-to-list 'load-path "~/emacs/tramp-2.1.17")
 (add-to-list 'load-path "~/emacs/lib/emacs/site-lisp")
 (add-to-list 'load-path "~/emacs/lib/emacs/site-lisp/color-theme-6.6.0")
-(add-to-list 'load-path "/cws/utt/Emacs/muse/lisp")
-(add-to-list 'load-path "/cws/utt/Emacs/remember")
-(add-to-list 'load-path "/cws/utt/Emacs/planner")
-
 ;;
 ;; Load my standard keys
 (load-file "~/emacs/lib/emacs/site-lisp/asml-keys.el")
@@ -120,12 +123,7 @@ vi style of % jumping to matching brace."
     (vc-backend-checkout buffer-file-name nil version filename)
     (let ((buf (find-file-noselect filename)))
       (ediff-buffers buf (current-buffer)))))
-;;
-;; Set up the print environment.
-(setq lpr-command "lp")
-;; ps-print: post script generator
-(require 'ps-print)
-(setq ps-paper-type 'a4)
+
 ;; Make sure the buffer name is unique, and reflects the location of its
 ;; contents
 (require 'uniquify)
@@ -164,37 +162,6 @@ vi style of % jumping to matching brace."
 ;; Buffer cycling
 (global-set-key "\M-z"  'bury-buffer)
 
-;; Template code definitions.
-(require 'template)
-(setq template-default-directories `("/home/utt/templates"))
-(template-initialize t)
-(defun pad-comment ()
-  "fill the current line with blanks to pos 72"
-  (interactive)
-  (setq padding  ( - 72 (current-column)))
-  (insert-char ?\  padding))
-
-(setq template-expansion-alist  '(("PAD" (insert-char ?\ (- 72 (current-column))))))
-(require 'compile)
-(setq compilation-error-regexp-alist
-  (append (list
-     ;; works for jikes
-     '("^\\s-*\\[[^]]*\\]\\s-*\\(.+\\):\\([0-9]+\\):\\([0-9]+\\):[0-9]+:[0-9]+:" 1 2 3)
-     ;; works for javac
-     '("^\\s-*\\[[^]]*\\]\\s-*\\(.+\\):\\([0-9]+\\):" 1 2))
-  compilation-error-regexp-alist))
-;;
-;; Correctly parse ant output
-;; Taken from ant faq
-(require 'compile)
-(setq compilation-error-regexp-alist
-  (append (list
-     ;; works for jikes
-     '("^\\s-*\\[[^]]*\\]\\s-*\\(.+\\):\\([0-9]+\\):\\([0-9]+\\):[0-9]+:[0-9]+:" 1 2 3)
-     ;; works for javac
-     '("^\\s-*\\[[^]]*\\]\\s-*\\(.+\\):\\([0-9]+\\):" 1 2))
-  compilation-error-regexp-alist))
-
 ;;
 (setq hcz-set-cursor-color-color "")
 (setq hcz-set-cursor-color-buffer "")
@@ -211,17 +178,6 @@ vi style of % jumping to matching brace."
       (set-cursor-color (setq hcz-set-cursor-color-color color))
       (setq hcz-set-cursor-color-buffer (buffer-name)))))
 (add-hook 'post-command-hook 'hcz-set-cursor-color-according-to-mode)
-;;
-;; Planner.el support: load paths
-;;(add-to-list 'load-path "~/emacs/lib/emacs/site-lisp/muse-3.12/lisp")
-;;(add-to-list 'load-path "~/emacs/lib/emacs/site-lisp/planner-3.42/")
-;(add-to-list 'load-path "~/emacs/lib/emacs/site-lisp/remember-2.0/")
-;;
-;; Planner.el : Set up remember
-(if (eq system-type 'gnu/linux)
-    (load-file "/home/utt/emacs/planner-setup.el")
-)
-
 ;;
 ;; Auto fill on in text mode
 (add-hook 'text-mode-hook 'turn-on-auto-fill)
@@ -244,61 +200,11 @@ vi style of % jumping to matching brace."
 (color-theme-initialize)
 ;;(color-theme-high-contrast)
 ;;
-;; jdee installation (Experimental)
-;;(add-to-list 'load-path (expand-file-name "/scratch/emacs/jde-2.3.5.1/lisp"))
-;;(add-to-list 'load-path (expand-file-name "/scratch/emacs/cedet-1.0pre6/common"))
-;;(load-file (expand-file-name "/scratch/emacs/cedet-1.0pre6/common/cedet.el"))
-;;(add-to-list 'load-path (expand-file-name "/scratch/emacs/elib-1.0"))
-;; (require 'jde)
 ;;
 ;; tramp mode
-(setq tramp-syntax 'url)
+;;(setq tramp-syntax 'url)
 (require 'tramp)
-(defun jcs-comment-box ()
-  "Draw a box comment around the region but arrange for the region
-to extend to at least the fill column. Place the point after the
-comment box."
-  (interactive)
-  (with-region-or-buffer (b e)
-    (save-restriction
-      (narrow-to-region b e)
-      (goto-char b)
-      (end-of-line)
-      (insert-char ?  (- fill-column (current-column)))
-      (comment-box b (point-max) 1)
-      (goto-char (point-max)))))
-;
-; flymake: only works on Linux desktop. 
-;; Now if you turn on ‘flymake-mode’ inside a Python file, you should
-;; see lines with warnings highlighted in blue, and lines with errors
-;; highlighted in red. Just hover your mouse over either type of line
-;; for a few seconds and you’ll see a tooltip describing the
-;; error/warning. Plus, the modeline will show you two numbers, X/Y,
-;; where X is the number of errors in your script, and Y is the total
-;; number of warnings. – John Wiegley
-;;
-;; 12-12-12 Also added python-for-emacs. 
-;;( if (eq emacs-major-version '23)
-;;(progn
-;;    (load-file "/home/utt/emacs/linux-python-setup.el")
-;;    (epy-setup-checker "epylint %f")
-;; )
-;; (epy-django-snippets)
-;;)
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(custom-safe-themes (quote ("dd43c9f997208c61ce0f4855932cc20a57ae2f37fe2ced218dace5c8c321d1e8" default)))
- '(printer-name "mfvdh295")
- '(ps-printer-name nil))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+
 ;;
 ;; Package manager support/monokai theme
 (setq package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
@@ -412,7 +318,7 @@ comment box."
 (global-set-key (kbd "C-c C-j") 'org-journal-entry)
 
 
-(require 'org-publish)
+;;(require 'org-publish)
 (setq org-publish-project-alist
       '(
 

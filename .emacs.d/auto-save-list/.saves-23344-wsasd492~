@@ -1,0 +1,12 @@
+/vobs/lcp/VirtualizationMgmt/ADC/scripts/configADC
+/vobs/lcp/VirtualizationMgmt/ADC/scripts/#configADC#
+/vobs/lcp/VirtualizationMgmt/ADC/pkg/PKG_contents
+/vobs/lcp/VirtualizationMgmt/ADC/pkg/#PKG_contents#
+/vobs/lcp/logging/errlog/export.err
+/vobs/lcp/logging/errlog/#export.err#
+/vobs/lcp/ZX/Export/dat/PKG_names_mgmt
+/vobs/lcp/ZX/Export/dat/#PKG_names_mgmt#
+/vobs/lcp/VirtualizationMgmt/vms/mgmt/kickstart/mgmt.cfg
+/vobs/lcp/VirtualizationMgmt/vms/mgmt/kickstart/#mgmt.cfg#
+/vobs/lcp/ZX/Export/dat/ASMLMTinst/preinstall
+/vobs/lcp/ZX/Export/dat/ASMLMTinst/#preinstall#

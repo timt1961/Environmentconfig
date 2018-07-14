@@ -1,0 +1,16 @@
+/vobs/otas/ZX/com/int/bin/otas_restore_backup.sh
+/vobs/otas/ZX/com/int/bin/#otas_restore_backup.sh#
+/vobs/otas/ZX/com/int/bin/otas_create_backup.sh
+/vobs/otas/ZX/com/int/bin/#otas_create_backup.sh#
+/vobs/otas/BaseLiner/LPDATA/src/sql/upgrade_from_402.sql
+/vobs/otas/BaseLiner/LPDATA/src/sql/#upgrade_from_402.sql#
+/vobs/otas/ZX/com/int/bin/upgrade_database_4.0.2_to_5.0.0.sh
+/vobs/otas/ZX/com/int/bin/#upgrade_database_4.0.2_to_5.0.0.sh#
+/vobs/otas/ZX/com/int/bin/patch_procs.sh
+/vobs/otas/ZX/com/int/bin/#patch_procs.sh#
+/vobs/otas/ZX/com/int/bin/installpatch
+/vobs/otas/ZX/com/int/bin/#installpatch#
+/vobs/otas/ZX/com/int/bin/continue_patch_generation
+/vobs/otas/ZX/com/int/bin/#continue_patch_generation#
+/vobs/otas/ZX/com/int/bin/procs.sh
+/vobs/otas/ZX/com/int/bin/#procs.sh#

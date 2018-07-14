@@ -1,0 +1,16 @@
+/vobs/lcp/ZX/Export/bin/init.sh
+/vobs/lcp/ZX/Export/bin/#init.sh#
+/vobs/lcp/ZX/Export/bin/procs.sh
+/vobs/lcp/ZX/Export/bin/#procs.sh#
+/vobs/lcp/ZX/Patch/generation/VmPatch.py
+/vobs/lcp/ZX/Patch/generation/#VmPatch.py#
+/vobs/lcp/ZX/Patch/generation/continue_patch_generation
+/vobs/lcp/ZX/Patch/generation/#continue_patch_generation#
+/vobs/lcp/ZX/Patch/web-api/asm_create_patch
+/vobs/lcp/ZX/Patch/web-api/#asm_create_patch#
+/view/utt_LCP2.0_small_fixes_LCP00000704/vobs/lcp/ZX/Patch/generation/continue_patch_generation
+/view/utt_LCP2.0_small_fixes_LCP00000704/vobs/lcp/ZX/Patch/generation/#continue_patch_generation#
+/view/utt_LCP2.0_small_fixes_LCP00000704/vobs/lcp/ZX/Patch/generation/Archive.py
+/view/utt_LCP2.0_small_fixes_LCP00000704/vobs/lcp/ZX/Patch/generation/#Archive.py#
+/vobs/lcp/ZX/Patch/generation/Archive.py
+/vobs/lcp/ZX/Patch/generation/#Archive.py#

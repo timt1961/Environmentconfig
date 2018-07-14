@@ -1,0 +1,12 @@
+/vobs/lcp/VirtualizationMgmt/pkg/ASMLMTvdpbind-conf.desc
+/vobs/lcp/VirtualizationMgmt/pkg/#ASMLMTvdpbind-conf.desc#
+/vobs/lcp/ZX/Installation/asm_install
+/vobs/lcp/ZX/Installation/#asm_install#
+/vobs/lcp/VirtualizationMgmt/pkg/PKG_contents_ASMLMTconf
+/vobs/lcp/VirtualizationMgmt/pkg/#PKG_contents_ASMLMTconf#
+/vobs/lcp/VirtualizationMgmt/scripts/downloadData
+/vobs/lcp/VirtualizationMgmt/scripts/#downloadData#
+/vobs/lcp/ZX/Patch/installation/backoutpatch
+/vobs/lcp/ZX/Patch/installation/#backoutpatch#
+/vobs/lcp/VirtualizationMgmt/services/vdpbind-conf/vdpbindConfig
+/vobs/lcp/VirtualizationMgmt/services/vdpbind-conf/#vdpbindConfig#

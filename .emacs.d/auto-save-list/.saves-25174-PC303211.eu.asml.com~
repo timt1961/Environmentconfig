@@ -1,0 +1,16 @@
+/cws/utt/PatchTooling/patch/Predict/src/GroupsFile.py
+/cws/utt/PatchTooling/patch/Predict/src/#GroupsFile.py#
+/cws/utt/PatchTooling/patch/Predict/test/TestGroupsFile.py
+/cws/utt/PatchTooling/patch/Predict/test/#TestGroupsFile.py#
+/cws/utt/PatchTooling/patch/Predict/test/TestPkgCmp.py
+/cws/utt/PatchTooling/patch/Predict/test/#TestPkgCmp.py#
+/cws/utt/PatchTooling/patch/Predict/src/determine_patch_contents
+/cws/utt/PatchTooling/patch/Predict/src/#determine_patch_contents#
+/cws/utt/PatchTooling/patch/Predict/src/PkgProtoFile.py
+/cws/utt/PatchTooling/patch/Predict/src/#PkgProtoFile.py#
+/cws/utt/PatchTooling/patch/Predict/src/Pkg.py
+/cws/utt/PatchTooling/patch/Predict/src/#Pkg.py#
+/cws/utt/PatchTooling/patch/Predict/src/Export.py
+/cws/utt/PatchTooling/patch/Predict/src/#Export.py#
+/cws/utt/PatchTooling/patch/Predict/src/ExportCmp.py
+/cws/utt/PatchTooling/patch/Predict/src/#ExportCmp.py#

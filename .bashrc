@@ -57,9 +57,9 @@ if [ -n "$force_color_prompt" ]; then
 fi
 
 if [ "$color_prompt" = yes ]; then
-    PS1='\[\033[01;32m\]\D{%Y-%m-%dT%H:%M:%S} \u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]'
+    PS1='color\[\033[01;32m\]\D{%Y-%m-%dT%H:%M:%S} \u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]'
 else
-    PS1='\D{%Y-%m-%dT%H:%M:%S} \u@\h:\w'
+    PS1='nocolor\D{%Y-%m-%dT%H:%M:%S} \u@\h:\w'
 fi
 unset color_prompt force_color_prompt
 
@@ -83,7 +83,7 @@ if [ -x /usr/bin/dircolors ]; then
     alias fgrep='fgrep --color=auto'
     alias egrep='egrep --color=auto'
 fi
-
+echo :"Mark 1" >> /tmp/tim.out
 # colored GCC warnings and errors
 #export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 
@@ -104,7 +104,7 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
 fi
-
+echo "Mark2 " >> /tmp/tim.out
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
 # sources /etc/bash.bashrc).
@@ -115,7 +115,7 @@ if ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
-
+echo "Mark 3" >> /tmp/tim.out
 #
 # Local customizations
 if [ -f ~/bin/git_completion.sh ]; then
@@ -124,15 +124,18 @@ if [ -f ~/bin/git_completion.sh ]; then
      source ~/bin/git_completion.sh
    fi
 fi
+echo "Mark4" >> /tmp/tim.out
 #
 # See http://code-worrier.com/blog/git-branch-in-bash-prompt/ for details
 if [ -f ~/bin/git_prompt.sh ]; then
    if [ `uname` == 'Linux' ]
    then
+     echo "Sourcing git_prompt" >> /tmp/tim.out
      source ~/bin/git_prompt.sh
-     PS1="$PS1$(__git_ps1) \$ "
+     PS1='\D{%Y-%m-%dT%H:%M:%S} \u@\h \W $(__git_ps1 "(%s)") \$ '
     fi
 else 
+     echo "no git prompt" >> /tmp/tim.out
      PS1='$PS1 $ '
 fi
 function setenv () {

@@ -150,6 +150,6 @@ function em () {
 #
 # I have a very distinct preference for the editor
 #
-export EDIT=emacs
-export EDITOR=emacs
-export MY_EDITOR=emacs
+#export EDIT=emacs
+#export EDITOR=emacs
+#export MY_EDITOR=emacs

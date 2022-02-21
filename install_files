@@ -1,11 +1,11 @@
 #! /bin/bash
 
 echo "Backup old environment"
-BACKUP_DIR=~/backup-${date "%Y%m%d-%H%M%S"}
+BACKUP_DIR=~/backup-$(date +"%Y%m%d-%H%M%S")
 if [ ! -d ${BACKUP_DIR} ]; then
   mkdir ${BACKUP_DIR}
 fi
-if [ -d ${BACKUP_DIR}; then
+if [ -d ${BACKUP_DIR} ]; then
   cp .bashrc ${BACKUP_DIR}/dotbashrc
   cp .bash_aliases ${BACKUP_DIR}/dotbashaliases
   cp .bash_functions ${BACKUP_DIR}/dotbashfunctions

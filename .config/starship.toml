@@ -1,0 +1,44 @@
+add_newline = false
+
+format = '[$character$time$python$username$hostname$directory$git_branch$git_status \$ ]($style)'
+[aws]
+style = "bold #ffb86c"
+
+[character]
+error_symbol = "[λ](bold #ff5555)"
+success_symbol = "[λ](bold #50fa7b)"
+
+[cmd_duration]
+style = "bold #f1fa8c"
+
+[directory]
+style = "bold #50fa7b"
+
+
+[git_status]
+style = "bold #ff5555"
+
+
+[time]
+disabled = false
+time_format = "%Y-%m-%dT%H:%M:%S" 
+format = '[$time ]($style)'
+
+[username]
+show_always = true
+style_user = "bold #8be9fd"
+format = '[$user]($style)'
+
+[hostname]
+ssh_only = false
+style = "bold #bd93f9"
+format = '[@$hostname]($style) '
+
+[git_branch]
+symbol = ""
+format = '[$symbol$branch]($style)'
+style = "bold #ff79c6"
+
+[python]
+symbol = "🐍"
+format = '[\($symbol$virtualenv\)]($style)'
